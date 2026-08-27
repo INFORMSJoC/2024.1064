@@ -1,0 +1,43 @@
+[build-system]
+requires = [
+    "setuptools>=75",
+    "pybind11>=2.13",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pwlopt"
+version = "0.1.0"
+description = "Software implementation for PWL function fitting, MILP modeling and application to pumped-storage hydropower plant scheduling"
+requires-python = ">=3.11"
+
+dependencies = [
+    "numpy>=2.0",
+    "matplotlib",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.optional-dependencies]
+
+fitting = [
+    "scipy"
+]
+
+modeling = [
+    "xpress",
+    "networkx",
+    "python-sat",
+]
+
+hydropower = [
+    "xpress",
+]
+
+dev = [
+    "pytest",
+    "pytest-cov",
+    "ruff",
+    "mypy",
+]
