@@ -1,8 +1,11 @@
 import json
 from dataclasses import asdict, dataclass, is_dataclass
 
+from pwlopt.utils import with_logger
 
-@dataclass
+
+@with_logger
+@dataclass(frozen=True, kw_only=True, slots=True)
 class HydroData:
     maxT : int # end of time horizon
     nperiod : int # number of periods
@@ -62,15 +65,19 @@ class HydroData:
             raise ValueError(f"{cls.__name__} must be a dataclass")
         
         with open(plantfile, "r") as f:
+            cls.logger.info("Read plant file %s", plantfile) # type: ignore[attr-defined]
             plant_data = json.load(f)
             
         with open(pricefile, "r") as f:
+            cls.logger.info("Read price file %s", pricefile) # type: ignore[attr-defined]
             price_data = json.load(f)
 
         with open(inflowfile, "r") as f:
+            cls.logger.info("Read inflow file %s", inflowfile) # type: ignore[attr-defined]
             inflow_data = json.load(f)
 
         with open(pumpcostfile, "r") as f:
+            cls.logger.info("Read pump-cost file %s", pumpcostfile) # type: ignore[attr-defined]
             pumpcost_data = json.load(f)
                     
         kwargs = {
