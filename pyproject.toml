@@ -14,25 +14,31 @@ requires-python = ">=3.11"
 dependencies = [
     "numpy>=2.0",
     "matplotlib",
+    "xpress",
+    "networkx",
+    "python-sat",
+    "pydantic",
+    "scipy",
 ]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[project.optional-dependencies]
+[tool.mypy]
+mypy_path = "src"
 
+[[tool.mypy.overrides]]
+module = ["xpress", "xpress.*", "networkx", "networkx.*", "scipy", "scipy.*"]
+ignore_missing_imports = true
+
+[project.optional-dependencies]
 fitting = [
-    "scipy"
 ]
 
 modeling = [
-    "xpress",
-    "networkx",
-    "python-sat",
 ]
 
 hydropower = [
-    "xpress",
 ]
 
 dev = [
