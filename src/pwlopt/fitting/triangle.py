@@ -18,6 +18,7 @@ class Triangle:
         self._area = None
         self._sample = None
         self._radius = None
+        self._edges = None
 
     def __str__(self):
         return f"Triangle{self.idxs}"
@@ -28,12 +29,14 @@ class Triangle:
 
     @property
     def edges(self):
-        i, j, k = self.idxs
-        return (
-            (i, j),
-            (j, k),
-            (k, i),
-        )
+        if self._edges is None:
+            i, j, k = sorted(self.idxs)
+            self._edges = (
+                (i, j),
+                (j, k),
+                (i, k),
+            )
+        return self._edges
 
     def __hash__(self):
         return hash(self.idxs)
