@@ -1,0 +1,263 @@
+from numpy import arctan2, array, asarray, degrees, dot, min, sum
+from scipy.spatial import Voronoi
+
+from ..utils import with_logger
+
+
+@with_logger
+class Triangle:
+    def __init__(self, idxs, pts):
+        self.idxs = idxs
+        self.pts = pts
+        self._circumcenter = None
+        self._angles = None
+        self._area = None
+        
+    @property
+    def P(self):
+        return self.pts[self.idxs]
+
+    @property
+    def circumcenter(self):
+        if self._circumcenter is None:
+            a, b, c = self.P
+            A = b - a
+            B = c - a
+            AdotA = dot(A, A)
+            BdotB = dot(B, B)
+            cross = A[0] * B[1] - A[1] * B[0]
+
+            if abs(cross) < 1e-12:
+                # Degenerate triangle: return average as fallback
+                return (a + b + c) / 3.0
+
+            self._circumcenter = a + (
+                BdotB * array([-A[1], A[0]]) - AdotA * array([-B[1], B[0]])
+            ) / (2 * cross)
+        return self._circumcenter
+
+    @property
+    def angles(self):
+        if self._angles is None:
+            a, b, c = self.P
+
+            # Vectors at each vertex
+            ab = b - a
+            ac = c - a
+
+            ba = a - b
+            bc = c - b
+
+            ca = a - c
+            cb = b - c
+
+            def angle(u, v):
+                cross = u[0] * v[1] - u[1] * v[0]
+                dotprod = dot(u, v)
+                return arctan2(abs(cross), dotprod)
+
+            angles = [
+                angle(ab, ac),
+                angle(ba, bc),
+                angle(ca, cb),
+            ]
+            self._angles = angles
+        return self._angles
+
+    @property
+    def min_angle(self):
+        return min(self.angles)
+
+    @property
+    def min_angle_deg(self):
+        return degrees(self.min_angle)
+
+    @property
+    def area(self):
+        """Compute area of triangle"""
+        if self._area is None:
+            x1, y1 = self.P[0]
+            x2, y2 = self.P[1]
+            x3, y3 = self.P[2]
+            self._area = 0.5 * abs(
+                x1 * y2 + x2 * y3 + x3 * y1 - (y1 * x2 + y2 * x3 + y3 * x1)
+            )
+        return self._area
+
+    def in_circumcircle(self, p):
+        a, b, c = self.P
+
+        a = a - p
+        b = b - p
+        c = c - p
+
+        det = (
+            dot(a, a) * (b[0] * c[1] - b[1] * c[0])
+            - dot(b, b) * (a[0] * c[1] - a[1] * c[0])
+            + dot(c, c) * (a[0] * b[1] - a[1] * b[0])
+        )
+
+        orientation = (
+            (self.P[1][0] - self.P[0][0])
+            * (self.P[2][1] - self.P[0][1])
+            - (self.P[1][1] - self.P[0][1])
+            * (self.P[2][0] - self.P[0][0])
+        )
+
+        return det > 0 if orientation > 0 else det < 0
+
+
+    def _contains(self, p):
+        """Return True if p is inside or on the boundary."""
+
+        a, b, c = self.P
+
+        def cross(u, v):
+            return u[0] * v[1] - u[1] * v[0]
+
+        c1 = cross(b - a, p - a)
+        c2 = cross(c - b, p - b)
+        c3 = cross(a - c, p - c)
+
+        return (
+            (c1 >= 0 and c2 >= 0 and c3 >= 0)
+            or
+            (c1 <= 0 and c2 <= 0 and c3 <= 0)
+        )
+
+    def _cell_fully_inside(self, lo, hi):
+        """Return True if the entire square [lo, hi] is inside triangle."""
+
+        x0, y0 = lo
+        x1, y1 = hi
+
+        corners = array([
+            [x0, y0],
+            [x1, y0],
+            [x0, y1],
+            [x1, y1],
+        ])
+
+        return all(self._contains(p) for p in corners)
+
+    def _cell_intersects(self, lo, hi):
+        """Return True if a square intersects the triangle."""
+
+        x0, y0 = lo
+        x1, y1 = hi
+
+        corners = array([
+            [x0, y0],
+            [x1, y0],
+            [x0, y1],
+            [x1, y1],
+        ])
+
+        # Any triangle vertex inside the square
+        if any(
+            x0 <= p[0] <= x1 and
+            y0 <= p[1] <= y1
+            for p in self.P
+        ):
+            return True
+
+        # Any square corner inside the triangle
+        if any(self._contains(p) for p in corners):
+            return True
+
+        # Triangle edge / square edge intersections
+        triangle_edges = [
+            (self.P[0], self.P[1]),
+            (self.P[1], self.P[2]),
+            (self.P[2], self.P[0]),
+        ]
+
+        square_edges = [
+            (corners[0], corners[1]),
+            (corners[0], corners[2]),
+            (corners[1], corners[3]),
+            (corners[2], corners[3]),
+        ]
+
+        for a, b in triangle_edges:
+            for c, d in square_edges:
+                if self._segments_intersect(a, b, c, d):
+                    return True
+
+        return False
+
+    @staticmethod
+    def _segments_intersect(a, b, c, d):
+        """Return True if two closed line segments intersect."""
+
+        def orientation(p, q, r):
+            return (
+                (q[0] - p[0]) * (r[1] - p[1])
+                - (q[1] - p[1]) * (r[0] - p[0])
+            )
+
+        o1 = orientation(a, b, c)
+        o2 = orientation(a, b, d)
+        o3 = orientation(c, d, a)
+        o4 = orientation(c, d, b)
+
+        return (
+            (o1 * o2 <= 0)
+            and
+            (o3 * o4 <= 0)
+        )
+
+    @staticmethod
+    def segment_intersection(a, b, c, d):
+        r = b - a
+        s = d - c
+        cross = r[0] * s[1] - r[1] * s[0]
+
+        if abs(cross) < 1e-12:
+            return None
+
+        t = ((c - a)[0] * s[1] - (c - a)[1] * s[0]) / cross
+        u = ((c - a)[0] * r[1] - (c - a)[1] * r[0]) / cross
+
+        if 0 <= t <= 1 and 0 <= u <= 1:
+            return a + t * r
+
+        return None
+
+    def is_covered(self, radius, tol=1e-6):
+        points = asarray(self.samples)
+        vor = Voronoi(points)
+
+        # Candidate points: triangle vertices + Voronoi vertices inside triangle
+        candidates = list(self.P)
+
+        for v in vor.vertices:
+            if self._contains(v):
+                candidates.append(v)
+
+        # Voronoi ridge ∩ triangle edge
+        edges = [
+            (self.P[0], self.P[1]),
+            (self.P[1], self.P[2]),
+            (self.P[2], self.P[0]),
+        ]
+
+        for ridge, vertices in zip(vor.ridge_points, vor.ridge_vertices):
+            if -1 in vertices:
+                continue
+
+            a, b = vor.vertices[vertices]
+            for c, d in edges:
+                p = self.segment_intersection(a, b, c, d)
+                if p is not None:
+                    candidates.append(p)
+
+        r2 = radius**2
+
+        for x in candidates:
+            nearest_d2 = min(sum((points - x)**2, axis=1))
+            if nearest_d2 > r2 + tol:
+                self.logger.warning("Nearest point is further than %.5f + tol%.5f: %.5f", r2, tol, nearest_d2)
+                return False
+
+        return True
