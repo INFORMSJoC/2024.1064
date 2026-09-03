@@ -1,4 +1,6 @@
-from numpy import arctan2, array, degrees, dot, min, sum
+from matplotlib.patches import Circle
+from matplotlib.pyplot import subplots
+from numpy import arctan2, array, degrees, dot, min, sum, vstack
 from scipy.spatial import Voronoi
 
 from ..utils import with_logger
@@ -8,7 +10,8 @@ from .sampling import PoissonDiskSampler
 @with_logger
 class Triangle:
     def __init__(self, idxs, pts):
-        self.idxs = idxs
+        self.logger.debug("Initialize Triangle with indices %s and points %s", idxs, pts)
+        self.idxs = tuple(sorted(int(i) for i in idxs))
         self.pts = pts
         self._circumcenter = None
         self._angles = None
@@ -16,17 +19,35 @@ class Triangle:
         self._sample = None
         self._radius = None
 
+    def __str__(self):
+        return f"Triangle{self.idxs}"
+
     @property
     def P(self):
-        return self.pts[self.idxs]
+        return self.pts[list(self.idxs)]
+
+    @property
+    def edges(self):
+        i, j, k = self.idxs
+        return (
+            (i, j),
+            (j, k),
+            (k, i),
+        )
+
+    def __hash__(self):
+        return hash(self.idxs)
+
+    def __eq__(self, other):
+        return isinstance(other, Triangle) and self.idxs == other.idxs
 
     def sample(self, r):
-        if self._sample is None or self.radius != r:
+        if self._sample is None or self._radius != r:
             if self._sample is None:
                 self.logger.info("Triangle is not sampled yet, Maximal Poisson Disk Sampling with radius %.5f", r)
             elif self._radius != r:
                 self.logger.info("Current sample radius (%.5f) differs from required sample radius %.5f, start resampling", self._radius, r)
-            self.radius = r
+            self._radius = r
             sampler = PoissonDiskSampler(self, r)
             self._sample = sampler.sample()
         return self._sample
@@ -99,7 +120,7 @@ class Triangle:
             )
         return self._area
 
-    def in_circumcircle(self, p):
+    def in_circumcircle(self, p, tol=1e-12):
         a, b, c = self.P
 
         a = a - p
@@ -119,7 +140,7 @@ class Triangle:
             * (self.P[2][0] - self.P[0][0])
         )
 
-        return det > 0 if orientation > 0 else det < 0
+        return det > tol if orientation > 0 else det < -tol
 
 
     def _contains(self, p):
@@ -276,3 +297,51 @@ class Triangle:
                 return False
 
         return True
+
+    def plot_sample(self, fig=None, ax=None):
+        if fig is None or ax is None:
+            fig, ax = subplots(figsize=(15, 10))
+        if self._sample is None:
+            raise ValueError("Triangle not sampled yet!")
+        sample = self._sample
+
+        ax.scatter(sample[:, 0], sample[:, 1], s=10*self._radius, c="blue")
+
+        # triangle_plot = vstack([self.P, self.P[0]])
+
+        # ax.plot(
+        #     triangle_plot[:,0],
+        #     triangle_plot[:,1],
+        #     linewidth=2,
+        #     color="k"
+        # )
+        self.plot_triangle(fig, ax)
+
+        for p in self.sample(self._radius):
+            circle = Circle(
+                p,
+                radius=self._radius,
+                facecolor="blue",
+                edgecolor="blue",
+                alpha=.1,
+            )
+            ax.add_patch(circle)
+
+        ax.set_aspect("equal")
+        return fig, ax
+
+    def plot_triangle(self, fig=None, ax=None):
+        if fig is None or ax is None:
+            fig, ax = subplots(figsize=(15, 10))
+
+        triangle_plot = vstack([self.P, self.P[0]])
+        
+        ax.plot(
+            triangle_plot[:,0],
+            triangle_plot[:,1],
+            linewidth=1,
+            color="k"
+        )
+        
+        ax.set_aspect("equal")
+        return fig, ax

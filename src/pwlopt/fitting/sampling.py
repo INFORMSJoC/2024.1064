@@ -99,7 +99,7 @@ class PoissonDiskSampler:
     def sample(
         self,
         active_darts: float = 0.5,
-        max_level: int = 23,
+        max_level: int = 10,
         rng: Generator | None = None,
     ):
         if rng is None:
