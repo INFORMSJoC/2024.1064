@@ -1,7 +1,8 @@
-from numpy import arctan2, array, asarray, degrees, dot, min, sum
+from numpy import arctan2, array, degrees, dot, min, sum
 from scipy.spatial import Voronoi
 
 from ..utils import with_logger
+from .sampling import PoissonDiskSampler
 
 
 @with_logger
@@ -12,10 +13,24 @@ class Triangle:
         self._circumcenter = None
         self._angles = None
         self._area = None
-        
+        self._sample = None
+        self._radius = None
+
     @property
     def P(self):
         return self.pts[self.idxs]
+
+    def sample(self, r):
+        if self._sample is None or self.radius != r:
+            if self._sample is None:
+                self.logger.info("Triangle is not sampled yet, Maximal Poisson Disk Sampling with radius %.5f", r)
+            elif self._radius != r:
+                self.logger.info("Current sample radius (%.5f) differs from required sample radius %.5f, start resampling", self._radius, r)
+            self.radius = r
+            sampler = PoissonDiskSampler(self, r)
+            self._sample = sampler.sample()
+        return self._sample
+
 
     @property
     def circumcenter(self):
@@ -225,7 +240,7 @@ class Triangle:
         return None
 
     def is_covered(self, radius, tol=1e-6):
-        points = asarray(self.samples)
+        points = self.sample(radius)
         vor = Voronoi(points)
 
         # Candidate points: triangle vertices + Voronoi vertices inside triangle

@@ -20,11 +20,12 @@ def segment_intersection(a, b, c, d):
 
 class PoissonDiskSampler:
     def __init__(self, triangle: object, radius: float):
+        self.radius = radius
+        self.samples = []
         if radius <= 0:
             raise ValueError("radius must be positive")
 
         self.triangle = triangle
-        self.radius = radius
 
         self.lo = np.min(triangle.P, axis=0)
         self.hi = np.max(triangle.P, axis=0)
@@ -37,15 +38,7 @@ class PoissonDiskSampler:
         self.ny = int(np.ceil(width[1] / self.s0))
 
         self.grid = {}
-        self.triangle.sample = []
 
-    @property
-    def samples(self):
-        return self.triangle.sample
-
-    @samples.setter
-    def samples(self, other):
-        self.triangle.samples = other
 
     def _base_cell(self, p):
         return (
@@ -196,7 +189,7 @@ class PoissonDiskSampler:
             active = new_active
             level += 1
 
-        self.samples = np.asarray(self.samples)
+        return np.asarray(self.samples)
 
 
         
