@@ -1,22 +1,26 @@
 from matplotlib.patches import Circle
 from matplotlib.pyplot import subplots
 from numpy import arctan2, array, degrees, dot, min, sum, vstack
+from numpy.linalg import norm, solve
 from scipy.spatial import Voronoi
 
 from ..utils import with_logger
-from .sampling import PoissonDiskSampler
+from .sampling import EdgeSampler, PoissonDiskSampler
 
 
 @with_logger
 class Triangle:
     def __init__(self, idxs, pts):
-        self.logger.debug("Initialize Triangle with indices %s and points %s", idxs, pts)
+        self.logger.debug(
+            "Initialize Triangle with indices %s and points %s", idxs, pts
+        )
         self.idxs = tuple(sorted(int(i) for i in idxs))
         self.pts = pts
         self._circumcenter = None
         self._angles = None
         self._area = None
         self._sample = None
+        self._edge_sample = None
         self._radius = None
         self._edges = None
 
@@ -44,16 +48,44 @@ class Triangle:
     def __eq__(self, other):
         return isinstance(other, Triangle) and self.idxs == other.idxs
 
-    def sample(self, r):
+    def sample(self, r: float):
         if self._sample is None or self._radius != r:
             if self._sample is None:
-                self.logger.info("Triangle is not sampled yet, Maximal Poisson Disk Sampling with radius %.5f", r)
+                self.logger.info(
+                    "Triangle is not sampled yet, Maximal Poisson Disk Sampling with radius %.5f",
+                    r,
+                )
             elif self._radius != r:
-                self.logger.info("Current sample radius (%.5f) differs from required sample radius %.5f, start resampling", self._radius, r)
+                self.logger.info(
+                    "Current sample radius (%.5f) differs from required sample radius %.5f, start resampling",
+                    self._radius,
+                    r,
+                )
             self._radius = r
             sampler = PoissonDiskSampler(self, r)
+            # edge_sampler = EdgeSampler(self, r)
             self._sample = sampler.sample()
+            # self._sample = vstack((self._sample, edge_sampler.sample()))
         return self._sample
+
+    def edge_sample(self, r: float):
+        if self._edge_sample is None or self._radius != r:
+            if self._edge_sample is None:
+                self.logger.info(
+                    "Triangle edges not sampled yet, Maximal Poisson Disk Sampling with radius %.5f",
+                    r,
+                )
+            elif self._radius != r:
+                self.logger.info(
+                    "Current edge sample radius (%.5f) differs from required sample radius %.5f, start resampling",
+                    self._radius,
+                    r,
+                )
+            self._edge_sample = {}
+            for e in self.edges:
+                edge_sampler = EdgeSampler(self, e, r)
+                self._edge_sample[e] = edge_sampler.sample()
+        return self._edge_sample
 
 
     @property
@@ -136,15 +168,11 @@ class Triangle:
             + dot(c, c) * (a[0] * b[1] - a[1] * b[0])
         )
 
-        orientation = (
-            (self.P[1][0] - self.P[0][0])
-            * (self.P[2][1] - self.P[0][1])
-            - (self.P[1][1] - self.P[0][1])
-            * (self.P[2][0] - self.P[0][0])
-        )
+        orientation = (self.P[1][0] - self.P[0][0]) * (self.P[2][1] - self.P[0][1]) - (
+            self.P[1][1] - self.P[0][1]
+        ) * (self.P[2][0] - self.P[0][0])
 
         return det > tol if orientation > 0 else det < -tol
-
 
     def _contains(self, p):
         """Return True if p is inside or on the boundary."""
@@ -158,11 +186,7 @@ class Triangle:
         c2 = cross(c - b, p - b)
         c3 = cross(a - c, p - c)
 
-        return (
-            (c1 >= 0 and c2 >= 0 and c3 >= 0)
-            or
-            (c1 <= 0 and c2 <= 0 and c3 <= 0)
-        )
+        return (c1 >= 0 and c2 >= 0 and c3 >= 0) or (c1 <= 0 and c2 <= 0 and c3 <= 0)
 
     def _cell_fully_inside(self, lo, hi):
         """Return True if the entire square [lo, hi] is inside triangle."""
@@ -170,12 +194,14 @@ class Triangle:
         x0, y0 = lo
         x1, y1 = hi
 
-        corners = array([
-            [x0, y0],
-            [x1, y0],
-            [x0, y1],
-            [x1, y1],
-        ])
+        corners = array(
+            [
+                [x0, y0],
+                [x1, y0],
+                [x0, y1],
+                [x1, y1],
+            ]
+        )
 
         return all(self._contains(p) for p in corners)
 
@@ -185,19 +211,17 @@ class Triangle:
         x0, y0 = lo
         x1, y1 = hi
 
-        corners = array([
-            [x0, y0],
-            [x1, y0],
-            [x0, y1],
-            [x1, y1],
-        ])
+        corners = array(
+            [
+                [x0, y0],
+                [x1, y0],
+                [x0, y1],
+                [x1, y1],
+            ]
+        )
 
         # Any triangle vertex inside the square
-        if any(
-            x0 <= p[0] <= x1 and
-            y0 <= p[1] <= y1
-            for p in self.P
-        ):
+        if any(x0 <= p[0] <= x1 and y0 <= p[1] <= y1 for p in self.P):
             return True
 
         # Any square corner inside the triangle
@@ -230,21 +254,14 @@ class Triangle:
         """Return True if two closed line segments intersect."""
 
         def orientation(p, q, r):
-            return (
-                (q[0] - p[0]) * (r[1] - p[1])
-                - (q[1] - p[1]) * (r[0] - p[0])
-            )
+            return (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])
 
         o1 = orientation(a, b, c)
         o2 = orientation(a, b, d)
         o3 = orientation(c, d, a)
         o4 = orientation(c, d, b)
 
-        return (
-            (o1 * o2 <= 0)
-            and
-            (o3 * o4 <= 0)
-        )
+        return (o1 * o2 <= 0) and (o3 * o4 <= 0)
 
     @staticmethod
     def segment_intersection(a, b, c, d):
@@ -294,9 +311,14 @@ class Triangle:
         r2 = radius**2
 
         for x in candidates:
-            nearest_d2 = min(sum((points - x)**2, axis=1))
+            nearest_d2 = min(sum((points - x) ** 2, axis=1))
             if nearest_d2 > r2 + tol:
-                self.logger.warning("Nearest point is further than %.5f + tol%.5f: %.5f", r2, tol, nearest_d2)
+                self.logger.warning(
+                    "Nearest point is further than %.5f + tol%.5f: %.5f",
+                    r2,
+                    tol,
+                    nearest_d2,
+                )
                 return False
 
         return True
@@ -308,16 +330,8 @@ class Triangle:
             raise ValueError("Triangle not sampled yet!")
         sample = self._sample
 
-        ax.scatter(sample[:, 0], sample[:, 1], s=10*self._radius, c="blue")
+        ax.scatter(sample[:, 0], sample[:, 1], s=10 * self._radius, c="blue")
 
-        # triangle_plot = vstack([self.P, self.P[0]])
-
-        # ax.plot(
-        #     triangle_plot[:,0],
-        #     triangle_plot[:,1],
-        #     linewidth=2,
-        #     color="k"
-        # )
         self.plot_triangle(fig, ax)
 
         for p in self.sample(self._radius):
@@ -326,7 +340,7 @@ class Triangle:
                 radius=self._radius,
                 facecolor="blue",
                 edgecolor="blue",
-                alpha=.1,
+                alpha=0.1,
             )
             ax.add_patch(circle)
 
@@ -338,13 +352,38 @@ class Triangle:
             fig, ax = subplots(figsize=(15, 10))
 
         triangle_plot = vstack([self.P, self.P[0]])
-        
-        ax.plot(
-            triangle_plot[:,0],
-            triangle_plot[:,1],
-            linewidth=1,
-            color="k"
-        )
-        
+
+        ax.plot(triangle_plot[:, 0], triangle_plot[:, 1], linewidth=1, color="k")
+
         ax.set_aspect("equal")
         return fig, ax
+
+    def lin_grad(self, fun):
+        p1, p2, p3 = self.P
+        vals = fun(self.P)
+
+        if vals.shape != (3,):
+            raise ValueError("values must have shape (3,)")
+
+        A = array(
+            [
+                p2 - p1,
+                p3 - p1,
+            ]
+        )
+
+        return solve(A, vals[1:] - vals[0])
+
+    def get_lip(self, fun):
+        return norm(self.lin_grad(fun))
+
+    def lint(self, pts, fun):
+        grad = self.lin_grad(fun)
+        vals = fun(self.P)
+        self.logger.debug(
+            "shapes -> vals[0]: %s, (pts-self.P[0]): %s, grad: %s",
+            vals[0].shape,
+            (pts - self.P[0]).shape,
+            grad.shape,
+        )
+        return vals[0] + (pts - self.P[0]) @ grad

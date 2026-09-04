@@ -40,6 +40,10 @@ class Triangulation:
     def edges(self):
         return self.edges_to_triangles.keys()
 
+    @property
+    def min_angle(self):
+        return min(t.min_angle for t in self.trg)
+
     def _add_triangle(self, triangle: Triangle) -> None:
         self.logger.info("Add new triangle: %s", triangle)
 
@@ -61,7 +65,6 @@ class Triangulation:
             if not triangles:
                 del self.edges_to_triangles[edge]
 
-
     def _get_opposite_edges(self, point_idx: int) -> list[tuple[int, int]]:
         edges = []
         for t in self.trg:
@@ -71,14 +74,11 @@ class Triangulation:
                 if point_idx not in e:
                     edges.append(e)
         return edges
-                
+
     def _repair_delaunay_property(self, point_idx: int) -> None:
         """Restore the Delaunay property after inserting point_idx."""
         self.logger.info("Try repairing Delaunay property for idx = %d", point_idx)
-        stack = [
-            edge
-            for edge in self._get_opposite_edges(point_idx)
-        ]
+        stack = [edge for edge in self._get_opposite_edges(point_idx)]
 
         while stack:
             edge = tuple(sorted(stack.pop()))
@@ -98,14 +98,18 @@ class Triangulation:
             k = next(x for x in t1.idxs if x not in edge)
             l = next(x for x in t2.idxs if x not in edge)
 
-
             if not t1.in_circumcircle(self.pts[l]):
-                self.logger.info("Skip, point %d is not in the circumcircle of triangle %s", l, t1)
+                self.logger.info(
+                    "Skip, point %d is not in the circumcircle of triangle %s", l, t1
+                )
                 continue
 
             self.logger.info(
                 "Flip non-Delaunay edge (%d, %d) -> (%d, %d)",
-                i, j, k, l,
+                i,
+                j,
+                k,
+                l,
             )
 
             self._remove_triangle(t1)
@@ -123,7 +127,7 @@ class Triangulation:
                 if k in new_edge or l in new_edge and new_edge != tuple(sorted((k, l))):
                     stack.append(new_edge)
 
-    def _insert_on_edge(self, p:ndarray, edge: tuple[int, int]) -> None:
+    def _insert_on_edge(self, p: ndarray, edge: tuple[int, int]) -> None:
         """Insert point p lying on an existing edge."""
         i, j = edge
         point_idx = len(self.pts)
@@ -160,13 +164,13 @@ class Triangulation:
         else:
             raise ValueError(f"Edge {edge} has {len(adjacent)} adjacent triangles")
 
-        self._repair_delaunay_property(len(self.pts)-1)
-
+        self._repair_delaunay_property(len(self.pts) - 1)
 
     def insert_point(self, p: ndarray, on_edge: tuple[int, int] | None = None) -> None:
         if on_edge is not None:
             self._insert_on_edge(p, on_edge)
             return
+
         point_idx = len(self.pts)
 
         # Find cavity
@@ -186,7 +190,6 @@ class Triangulation:
         for t in bad_set:
             self.logger.info("Remove triangle: %s", t)
             self._remove_triangle(t)
-        # self.trg = [triangle for triangle in self.trg if triangle not in bad_set]
 
         # Add point
         self.logger.info("Insert new point %s with index %d", p, len(self.pts))
@@ -248,7 +251,12 @@ class Triangulation:
 
     def split_triangle(self, triangle) -> None:
         p = triangle.circumcenter
-        self.logger.info("Split triangle %s at %s (min angle: %.3f)", triangle, p, triangle.min_angle_deg)
+        self.logger.info(
+            "Split triangle %s at %s (min angle: %.3f)",
+            triangle,
+            p,
+            triangle.min_angle_deg,
+        )
         self.insert_point(p)
 
     def is_segment_encroached(self, seg, tol=1e-12) -> bool:
@@ -322,7 +330,6 @@ class Triangulation:
                 break
 
             p = bad_triangle.circumcenter
-
 
             segments = [edge for edge in self.edges if self.is_edge_border(edge)]
 
