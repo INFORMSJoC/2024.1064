@@ -19,6 +19,7 @@ dependencies = [
     "python-sat",
     "pydantic",
     "scipy",
+    "pyintval",
 ]
 
 [tool.setuptools.packages.find]
@@ -28,7 +29,7 @@ where = ["src"]
 mypy_path = "src"
 
 [[tool.mypy.overrides]]
-module = ["xpress", "xpress.*", "networkx", "networkx.*", "scipy", "scipy.*"]
+module = ["xpress", "xpress.*", "networkx", "networkx.*", "scipy", "scipy.*", "pyintval", "pyintval.*"]
 ignore_missing_imports = true
 
 [project.optional-dependencies]
