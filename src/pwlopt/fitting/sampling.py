@@ -1,6 +1,8 @@
 import numpy as np
 from numpy.random import Generator, default_rng
 
+from ..utils import with_logger
+
 
 def segment_intersection(a, b, c, d):
     r = b - a
@@ -192,4 +194,22 @@ class PoissonDiskSampler:
         return np.asarray(self.samples)
 
 
-        
+
+@with_logger        
+class EdgeSampler:
+    def __init__(self, triangle: object, edge: tuple[int, int], radius: float):
+        self.radius = radius
+        self.samples = np.empty((0, 2))
+        if radius <= 0:
+            raise ValueError("radius must be positive")
+        self.edge = edge
+        self.triangle = triangle
+
+    def sample(self):
+        p1 = self.triangle.pts[self.edge[0]]
+        p2 = self.triangle.pts[self.edge[1]]
+        distance = np.linalg.norm(p2 - p1)
+        n_intervals = int(np.ceil(distance / self.radius))
+        points = np.linspace(p1, p2, n_intervals + 1)
+        self.samples = np.vstack((self.samples, points))
+        return self.samples        
