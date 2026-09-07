@@ -1,9 +1,12 @@
 [build-system]
 requires = [
-    "setuptools>=75",
-    "pybind11>=2.13",
+    "scikit-build-core>=0.10",
+    "pybind11>=2.12",
 ]
-build-backend = "setuptools.build_meta"
+build-backend = "scikit_build_core.build"
+
+[tool.scikit-build]
+wheel.packages = ["src/pwlopt"]
 
 [project]
 name = "pwlopt"
