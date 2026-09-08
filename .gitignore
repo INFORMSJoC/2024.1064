@@ -1,7 +1,8 @@
 .venv/**
 *.egg**
 *cpython**
-__pycache__/*
+*/__pycache__/*
 xpauth.xpr
 .env
 build/**
+.vscode/**
