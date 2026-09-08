@@ -56,4 +56,4 @@ The instance files found in `data/hydro_instances` were interpreted from `.lp` f
 For licensing and redistribution terms, see the original source.
 
 ## Other used algorithm
-All algorithms used in the repository are cited in the manuscript, except for the Bowyer-Watson incremental Delaunay-triangulation alg., used in the point insertion subroutine of triangulations.
+The algorithms used in the repository are cited in the manuscript, except for the well-known Bowyer-Watson incremental Delaunay-triangulation alg., used in the point insertion subroutine of triangulations.
