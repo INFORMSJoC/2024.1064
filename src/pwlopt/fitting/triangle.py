@@ -5,7 +5,8 @@ from numpy.linalg import norm, solve
 from scipy.spatial import Voronoi
 
 from ..utils import with_logger
-from .sampling import EdgeSampler, PoissonDiskSampler
+from .sampling import EdgeSampler
+from .sampling_cpp import PoissonDiskSampler
 
 
 @with_logger
