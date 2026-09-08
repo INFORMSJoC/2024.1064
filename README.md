@@ -1,4 +1,10 @@
-# 2024.1064
+# 2024.1064 - Optimization techniques for modeling with piecewise-linear functions
+
+This repository contains the source code, benchmark instances, and computational experiments accompanying the paper *Optimization techniques for modeling with piecewise-linear functions* by Péter Dobrovoczki and Tamás Kis.
+
+The paper develops optimization techniques for constructing piecewise-linear approximations of multivariate functions and representing the resulting approximations using compact mixed-integer linear programming (MILP) formulations. The repository provides implementations of the proposed algorithms, including the heuristic construction of triangulations and the optimization techniques used to obtain efficient MILP representations.
+
+The computational experiments in the paper evaluate the proposed methods on benchmark instances and include an application to short-term hydropower scheduling. The repository contains also the computational results reported in the paper.
 
 ## Cite
 TBD
@@ -48,3 +54,6 @@ The instances originate from:
 The instance files found in `data/hydro_instances` were interpreted from `.lp` files in the original distribution.
 
 For licensing and redistribution terms, see the original source.
+
+## Other used algorithm
+All algorithms used in the repository are cited in the manuscript, except for the Bowyer-Watson incremental Delaunay-triangulation alg., used in the point insertion subroutine of triangulations.
