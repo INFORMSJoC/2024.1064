@@ -195,10 +195,10 @@ class BicliqueCover:
         nx.draw(self.trg_graph, pos=posH, ax=ax, edge_color="grey", node_color=node_col)
         plt.show()
 
-    def solve(self, timer=True):
+    def solve(self, timer=True, limit=100):
         while self.weight > 0:
             self.add_biclique_IP(
-                limit=100, timer=timer
+                limit=limit, timer=timer
             )
         self.logger.info(
             "Biclique cover found, total number of bicliques: %d", len(self.reds)
