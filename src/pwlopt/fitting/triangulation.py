@@ -137,6 +137,8 @@ class Triangulation:
         # Add the point first so newly created triangles can reference it.
         self.logger.info("Insert new point %s with index %d", p, len(self.pts))
         self.pts = vstack((self.pts, p))
+        for existing_triangle in self.trg:
+            existing_triangle.pts = self.pts
 
         if len(adjacent) == 1:
             triangle = adjacent[0]
@@ -194,6 +196,8 @@ class Triangulation:
         # Add point
         self.logger.info("Insert new point %s with index %d", p, len(self.pts))
         self.pts = vstack((self.pts, p))
+        for existing_triangle in self.trg:
+            existing_triangle.pts = self.pts
 
         # Retriangulate cavity
         for i, j in boundary:

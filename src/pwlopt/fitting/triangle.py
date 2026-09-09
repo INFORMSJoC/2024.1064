@@ -1,6 +1,6 @@
 from matplotlib.patches import Circle
 from matplotlib.pyplot import subplots
-from numpy import arctan2, array, degrees, dot, min, sum, vstack
+from numpy import arctan2, array, degrees, dot, finfo, min, sum, vstack
 from numpy.linalg import norm, solve
 from scipy.spatial import Voronoi
 
@@ -95,17 +95,24 @@ class Triangle:
             a, b, c = self.P
             A = b - a
             B = c - a
+            scale = max(abs(A).max(), abs(B).max())
+
+            if scale == 0:
+                return (a + b + c) / 3.0
+
+            A = A / scale
+            B = B / scale
             AdotA = dot(A, A)
             BdotB = dot(B, B)
             cross = A[0] * B[1] - A[1] * B[0]
 
-            if abs(cross) < 1e-12:
+            if abs(cross) <= 16 * finfo(float).eps:
                 # Degenerate triangle: return average as fallback
                 return (a + b + c) / 3.0
 
             self._circumcenter = a + (
                 BdotB * array([-A[1], A[0]]) - AdotA * array([-B[1], B[0]])
-            ) / (2 * cross)
+            ) * scale / (2 * cross)
         return self._circumcenter
 
     @property
@@ -124,6 +131,12 @@ class Triangle:
             cb = b - c
 
             def angle(u, v):
+                # Scale before products so tiny triangles do not underflow.
+                scale = max(abs(u).max(), abs(v).max())
+                if scale == 0:
+                    return 0.0
+                u = u / scale
+                v = v / scale
                 cross = u[0] * v[1] - u[1] * v[0]
                 dotprod = dot(u, v)
                 return arctan2(abs(cross), dotprod)
@@ -148,20 +161,24 @@ class Triangle:
     def area(self):
         """Compute area of triangle"""
         if self._area is None:
-            x1, y1 = self.P[0]
-            x2, y2 = self.P[1]
-            x3, y3 = self.P[2]
-            self._area = 0.5 * abs(
-                x1 * y2 + x2 * y3 + x3 * y1 - (y1 * x2 + y2 * x3 + y3 * x1)
-            )
+            a, b, c = self.P
+            ab = b - a
+            ac = c - a
+            scale = max(abs(ab).max(), abs(ac).max())
+            if scale == 0:
+                return 0.0
+            cross = (ab[0] / scale) * (ac[1] / scale) - (
+                ab[1] / scale
+            ) * (ac[0] / scale)
+            self._area = 0.5 * abs(cross) * scale**2
         return self._area
 
     def in_circumcircle(self, p, tol=1e-12):
-        a, b, c = self.P
-
-        a = a - p
-        b = b - p
-        c = c - p
+        points = self.P - p
+        scale = abs(points).max()
+        if scale == 0:
+            return False
+        a, b, c = points / scale
 
         det = (
             dot(a, a) * (b[0] * c[1] - b[1] * c[0])
@@ -169,16 +186,23 @@ class Triangle:
             + dot(c, c) * (a[0] * b[1] - a[1] * b[0])
         )
 
-        orientation = (self.P[1][0] - self.P[0][0]) * (self.P[2][1] - self.P[0][1]) - (
-            self.P[1][1] - self.P[0][1]
-        ) * (self.P[2][0] - self.P[0][0])
+        orientation = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
 
+        if abs(orientation) <= 16 * finfo(float).eps:
+            return False
         return det > tol if orientation > 0 else det < -tol
 
     def _contains(self, p):
         """Return True if p is inside or on the boundary."""
 
         a, b, c = self.P
+        scale = max(abs(b - a).max(), abs(c - a).max(), abs(p - a).max())
+        if scale == 0:
+            return False
+        b = (b - a) / scale
+        c = (c - a) / scale
+        p = (p - a) / scale
+        a = array([0.0, 0.0])
 
         def cross(u, v):
             return u[0] * v[1] - u[1] * v[0]
@@ -254,30 +278,49 @@ class Triangle:
     def _segments_intersect(a, b, c, d):
         """Return True if two closed line segments intersect."""
 
+        scale = max(abs(b - a).max(), abs(c - a).max(), abs(d - a).max())
+        if scale == 0:
+            return True
+        origin = a.copy()
+        a, b, c, d = (point - origin for point in (a, b, c, d))
+        a, b, c, d = (point / scale for point in (a, b, c, d))
+
         def orientation(p, q, r):
             return (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])
+
+        def on_segment(p, q, r):
+            return min(p[0], r[0]) <= q[0] <= max(p[0], r[0]) and min(p[1], r[1]) <= q[1] <= max(p[1], r[1])
 
         o1 = orientation(a, b, c)
         o2 = orientation(a, b, d)
         o3 = orientation(c, d, a)
         o4 = orientation(c, d, b)
 
-        return (o1 * o2 <= 0) and (o3 * o4 <= 0)
+        return (
+            ((o1 > 0 and o2 < 0) or (o1 < 0 and o2 > 0) or (o1 == 0 and on_segment(a, c, b)) or (o2 == 0 and on_segment(a, d, b)))
+            and ((o3 > 0 and o4 < 0) or (o3 < 0 and o4 > 0) or (o3 == 0 and on_segment(c, a, d)) or (o4 == 0 and on_segment(c, b, d)))
+        )
 
     @staticmethod
     def segment_intersection(a, b, c, d):
         r = b - a
         s = d - c
+        scale = max(abs(r).max(), abs(s).max(), abs(c - a).max())
+        if scale == 0:
+            return a.copy()
+        r = r / scale
+        s = s / scale
+        c = (c - a) / scale
         cross = r[0] * s[1] - r[1] * s[0]
 
-        if abs(cross) < 1e-12:
+        if abs(cross) <= 16 * finfo(float).eps:
             return None
 
-        t = ((c - a)[0] * s[1] - (c - a)[1] * s[0]) / cross
-        u = ((c - a)[0] * r[1] - (c - a)[1] * r[0]) / cross
+        t = (c[0] * s[1] - c[1] * s[0]) / cross
+        u = (c[0] * r[1] - c[1] * r[0]) / cross
 
         if 0 <= t <= 1 and 0 <= u <= 1:
-            return a + t * r
+            return a + t * (b - a)
 
         return None
 
