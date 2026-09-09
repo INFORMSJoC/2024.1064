@@ -10,6 +10,7 @@ from pysat.formula import CNF
 from pysat.solvers import Glucose3
 
 from ..utils import get_rgb, incident_triangles, induced_triangles, with_logger
+from .rank_reduction import ConflictHypergraph, SimplicialPartition
 
 
 @with_logger
@@ -18,7 +19,18 @@ class TriangulationColoring:
         self.tri = tri
         self.points = points
         self.npts = len(self.points)
-        self.conflict_graph = self._create_blocking_rank_2_graph()
+        partition = SimplicialPartition([set(t) for t in self.tri], self.points)
+        self.conflict_hypergraph = ConflictHypergraph(partition)
+        self.rank = self.conflict_hypergraph.rank
+        self.coloring = {tuple(t): 0 for t in self.tri}
+        self.ncolor = 1
+        self.greedy_success = True
+        self.conflict_graph = None
+
+        if self.rank >= 3:
+            self.conflict_graph = self._create_blocking_rank_2_graph()
+        else:
+            self.logger.info("Conflict hypergraph rank is %d; coloring is not needed", self.rank)
 
     def _create_blocking_rank_2_graph(self):
         self.logger.info("Compute rank-2 subgraph of blocking hypergraph")
@@ -150,6 +162,9 @@ class TriangulationColoring:
         return feas
 
     def color(self, verbose=False):
+        if self.rank < 3:
+            self.logger.info("Skip coloring because conflict hypergraph rank is %d", self.rank)
+            return
         self._greedy_color_graph(verbose=verbose)
         self.logger.info("Validate coloring with %d colors on complete blocking hypergraph ", self.ncolor)
         if not self.validate_coloring():
