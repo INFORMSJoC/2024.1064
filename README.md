@@ -60,6 +60,13 @@ The computational experiments in the paper evaluate the proposed methods on benc
 └── README.md
 ```
 
+## Installation
+The installation steps are the following:
+1. Clone git repository `git clone https://github.com/INFORMSJoC/2024.1064.git`
+2. Create virtual environment for python: `python -m venv .venv`
+3. Install required packages: `pip install .`
+4. Make sure that there is an available FICO Xpress license file, and can be found by the Xpress solver 
+
 ## Requirements
 The required packages are listed in `pyproject.toml`. To build and solve the MILP models (the hydropower models and the biclique cover algorithm), a FICO Xpress license is required.
 
