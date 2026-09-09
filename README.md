@@ -70,19 +70,6 @@ The installation steps are the following:
 ## Requirements
 The required packages are listed in `pyproject.toml`. To build and solve the MILP models (the hydropower models and the biclique cover algorithm), a FICO Xpress license is required.
 
-## Hydropower instances
-
-The benchmark instances used in the computational experiments were obtained from the Library of Codes and Instances maintained by the Operations Research group at the University of Bologna:
-
-https://site.unibo.it/operations-research/en/research/library-of-codes-and-instances-1
-
-The instances originate from:
-
-> **Borghetti et al. (2008)** *An MILP Approach for Short-Term Hydro Scheduling and Unit Commitment With Head-Dependent Reservoir*, IEEE Transactions on Power Systems, 23(3), 1115-1124.
-
-The instance files found in `data/hydro_instances` were interpreted from `.lp` files in the original distribution.
-
-For licensing and redistribution terms, see the original source.
 
 ## Running the hydropower script
 
@@ -130,3 +117,18 @@ python scripts/compute_biclique_cover.py adaptive/inst005.txt --output results/b
 ```
 
 Use `--time-limit` to set the time limit in seconds for each biclique subproblem. Computing a cover requires a FICO Xpress license.
+
+
+## Hydropower instances
+
+The benchmark instances used in the computational experiments were obtained from the Library of Codes and Instances maintained by the Operations Research group at the University of Bologna:
+
+https://site.unibo.it/operations-research/en/research/library-of-codes-and-instances-1
+
+The instances originate from:
+
+> **Borghetti et al. (2008)** *An MILP Approach for Short-Term Hydro Scheduling and Unit Commitment With Head-Dependent Reservoir*, IEEE Transactions on Power Systems, 23(3), 1115-1124.
+
+The instance files found in `data/hydro_instances` were interpreted from `.lp` files in the original distribution.
+
+For licensing and redistribution terms, see the original source.
