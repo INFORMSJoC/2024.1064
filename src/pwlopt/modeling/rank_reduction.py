@@ -28,7 +28,8 @@ class ConflictHypergraph:
 
     @property
     def rank(self):
-        return len(max(self.conflicts, key=len))
+        conflicts = self.conflicts
+        return max((len(conflict) for conflict in conflicts), default=0)
 
     @property
     def neighbors(self):
