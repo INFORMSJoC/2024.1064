@@ -1,7 +1,7 @@
-from numpy import arctan, cos, exp, float64, pi, sin
+from numpy import arctan2, cos, exp, float64, pi, sin
 from numpy.typing import NDArray
 from pyintval import abs as ivabs
-from pyintval import atan as ivatan
+from pyintval import atan2 as ivatan2
 from pyintval import cos as ivcos
 from pyintval import exp as ivexp
 from pyintval import sign as ivsign
@@ -16,7 +16,7 @@ def fun1(p: NDArray[float64]):
     dy = y - 0.5
 
     r2 = dx**2 + dy**2
-    theta = arctan(dy / dx)
+    theta = arctan2(dy, dx)
 
     d = 1.0 + 0.3 * sin(5.0 * theta)
 
@@ -28,7 +28,7 @@ def ivfun1_gradnorm(x, y):
     dy = y - 0.5
 
     r2 = dx**2 + dy**2
-    theta = ivatan(dy / dx)
+    theta = ivatan2(dy, dx)
 
     sin5 = ivsin(5.0 * theta)
     cos5 = ivcos(5.0 * theta)
@@ -37,18 +37,9 @@ def ivfun1_gradnorm(x, y):
 
     f = ivexp(-5.0 * r2 / d**2)
 
-    # theta_x = -(y - 0.5) / r^2
-    # theta_y =  (x - 0.5) / r^2
-    theta_x = -dy / r2
-    theta_y = dx / r2
-
-    # d_x and d_y
-    d_x = 1.5 * cos5 * theta_x
-    d_y = 1.5 * cos5 * theta_y
-
-    # q = r^2 / d^2
-    q_x = 2.0 * dx / d**2 - 2.0 * r2 * d_x / d**3
-    q_y = 2.0 * dy / d**2 - 2.0 * r2 * d_y / d**3
+    # q = r^2 / d^2; cancel r^2 before interval evaluation.
+    q_x = 2.0 * dx / d**2 + 3.0 * dy * cos5 / d**3
+    q_y = 2.0 * dy / d**2 - 3.0 * dx * cos5 / d**3
 
     return ivsqrt((-5.0 * f * q_x)**2 + (-5.0 * f * q_y)**2)
 
