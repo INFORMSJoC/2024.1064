@@ -76,14 +76,14 @@ The required packages are listed in `pyproject.toml`. To build and solve the MIL
 The `scripts/run_hydropower.py` script solves a hydropower instance using a stored triangulation. The triangulation path is relative to `data/triangulations`, and the month selects the corresponding directory under `data/hydro_instances`. Results are printed as JSON unless `--output` is specified.
 
 ```powershell
-python scripts/run_hydropower.py adaptive/inst005.txt June
-python scripts/run_hydropower.py adaptive/inst005.txt June --formulation dlog --output results/hydropower/run.json
+python scripts/run_hydropower.py adaptive/a005.txt June
+python scripts/run_hydropower.py adaptive/a005.txt June --formulation dlog --output results/hydropower/run.json
 ```
 
 Available formulations are `cc`, `dcc`, `dlog`, `gib`, and `inc`. For GIB, an existing biclique cover can be loaded from `results/biclique_cover`:
 
 ```powershell
-python scripts/run_hydropower.py adaptive/inst005.txt June --formulation gib --biclique-cover adaptive/inst005.json
+python scripts/run_hydropower.py adaptive/a005.txt June --formulation gib --biclique-cover adaptive/a005.json
 ```
 
 If `--biclique-cover` is omitted, the GIB model computes the cover automatically and reports the biclique-cover solution progress on the console.
@@ -101,19 +101,21 @@ The `--grid` option is an alias for `--formulation log_grid`. Solver controls in
 The `scripts/fit_function.py` script estimates a function's Lipschitz constant with interval branch-and-bound and runs the adaptive PWL fitting algorithm. Functions must be defined in `pwlopt.fitting.functions` and have a matching interval gradient function named `iv<function>_gradnorm`.
 
 ```powershell
-python scripts/fit_function.py fun2 --eps 0.01 --min-angle 20
-python scripts/fit_function.py fun2 --eps 0.01 --min-angle 20 --output results/fitting/fun2.txt --plot results/fitting/fun2.png
+python scripts/fit_function.py fun2 --eps 0.1 --min-angle 20
+python scripts/fit_function.py fun2 --eps 0.1 --min-angle 20 --output results/fitting/fun2.txt --plot results/fitting/fun2.png
 ```
 
 The `--output` option writes the final triangulation in the repository's triangulation format. The optional `--plot` output contains the function and final triangulation on the same axis, along with the fitting error history. Lipschitz estimation tolerances can be adjusted with `--lipschitz-ftol` and `--lipschitz-dtol`.
+
+**Important: the `min-angle` can be at most 20**
 
 ### Running the biclique cover script
 
 The `scripts/compute_biclique_cover.py` script reads a triangulation relative to `data/triangulations`, computes its biclique cover, and optionally writes the cover as JSON. The output format is compatible with the GIB hydropower formulation.
 
 ```powershell
-python scripts/compute_biclique_cover.py adaptive/inst005.txt
-python scripts/compute_biclique_cover.py adaptive/inst005.txt --output results/biclique_cover/adaptive/inst005.json
+python scripts/compute_biclique_cover.py adaptive/a05.txt
+python scripts/compute_biclique_cover.py adaptive/a05.txt --output results/biclique_cover/adaptive/inst05.json
 ```
 
 Use `--time-limit` to set the time limit in seconds for each biclique subproblem. Computing a cover requires a FICO Xpress license.

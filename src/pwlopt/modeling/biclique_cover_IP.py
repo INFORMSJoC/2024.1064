@@ -178,6 +178,7 @@ class BicliqueCover:
         self.reds.append(red)
         self.blues.append(blue)
         self.opt_gap.append(gap)
+        self.p.postSolve()
 
     def plot_cut(self, red, blue):
         node_col = []
