@@ -28,7 +28,7 @@ This repository contains the source code, benchmark instances, and computational
 The paper develops optimization techniques for constructing piecewise-linear approximations of multivariate functions and representing the resulting approximations using compact mixed-integer linear programming (MILP) formulations. The repository provides implementations of the proposed algorithms, including the heuristic construction of triangulations and the optimization techniques used to obtain efficient MILP representations.
 
 The computational experiments in the paper evaluate the proposed methods on benchmark instances and include an application to short-term hydropower scheduling. The repository contains also the computational results reported in the paper.
-![Fitting result](img\fun4_eps01_ang20.png)
+![Fitting result](img/fun4_eps01_ang20.png)
 
 ## Repository structure
 
