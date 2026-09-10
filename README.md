@@ -1,4 +1,10 @@
-# 2024.1064 - Optimization techniques for modeling with piecewise-linear functions
+[![INFORMS Journal on Computing Logo](https://INFORMSJoC.github.io/logos/INFORMS_Journal_on_Computing_Header.jpg)](https://pubsonline.informs.org/journal/ijoc)
+
+# Optimization techniques for modeling with piecewise-linear functions
+
+This archive is distributed in association with the [INFORMS Journal on Computing](https://pubsonline.informs.org/journal/ijoc) under the [MIT License](LICENSE).
+
+This repository contains the source code, benchmark instances, and computational experiments accompanying the paper [Optimization techniques for modeling with piecewise-linear functions](https://doi.org/10.1287/ijoc.2024.1064) by Péter Dobrovoczki and Tamás Kis. 
 
 ## Cite
 
@@ -11,10 +17,10 @@ https://doi.org/10.1287/ijoc.2024.1064.cd
 Below is the BibTex for citing this snapshot of the repository.
 
 ```
-@misc{PWLOpt,
-  author =        {P. Dobrovoczki, T. Kis},
+@misc{PWLOpt2026,
+  author =        {Péter Dobrovoczki and Tamás Kis},
   publisher =     {INFORMS Journal on Computing},
-  title =         {{PWLOpt}},
+  title =         {{Optimization techniques for modeling with piecewise-linear functions}},
   year =          {2026},
   doi =           {10.1287/ijoc.2024.1064.cd},
   url =           {https://github.com/INFORMSJoC/2024.1064},
@@ -22,8 +28,6 @@ Below is the BibTex for citing this snapshot of the repository.
 }  
 ```
 ## Description
-
-This repository contains the source code, benchmark instances, and computational experiments accompanying the paper *Optimization techniques for modeling with piecewise-linear functions* by Péter Dobrovoczki and Tamás Kis.
 
 The paper develops optimization techniques for constructing piecewise-linear approximations of multivariate functions and representing the resulting approximations using compact mixed-integer linear programming (MILP) formulations. The repository provides implementations of the proposed algorithms, including the heuristic construction of triangulations and the optimization techniques used to obtain efficient MILP representations.
 
