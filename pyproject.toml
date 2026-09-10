@@ -1,0 +1,45 @@
+[build-system]
+requires = [
+    "scikit-build-core>=0.10",
+    "pybind11>=2.12",
+]
+build-backend = "scikit_build_core.build"
+
+[tool.scikit-build]
+wheel.packages = ["src/pwlopt"]
+
+[project]
+name = "pwlopt"
+version = "0.1.0"
+description = "Software implementation for PWL function fitting, MILP modeling and application to pumped-storage hydropower plant scheduling"
+requires-python = ">=3.11"
+
+dependencies = [
+    "numpy>=2.0",
+    "matplotlib",
+    "xpress",
+    "networkx",
+    "python-sat",
+    "pydantic",
+    "scipy",
+    "pyintval",
+    "pytest",
+    "jupyter",
+    "ipykernel",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.mypy]
+mypy_path = "src"
+
+[[tool.mypy.overrides]]
+module = ["xpress", "xpress.*", "networkx", "networkx.*", "scipy", "scipy.*", "pyintval", "pyintval.*"]
+ignore_missing_imports = true
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+    "mypy",
+]
